@@ -33,6 +33,10 @@
             //$this->framework->setTypeApplication('console');
             //$this->framework->setSingleton();
             //$this->framework->buildFromConsoleApplication();
+
+            if(! isset($_SERVER['CONSOLE_TYPE'])) {
+                $_SERVER['CONSOLE_TYPE'] = 'local';
+            }
             $this->loadRegisteredCommands();
         }
 
