@@ -40,11 +40,12 @@
          */
         function __construct(InputInterface $input, OutputInterface $output, array $config = null)
         {
-            if(isset($config))
+            if (isset($config)) {
                 $this->config   = $config;
-            else
+            } else
+            {
                 $this->config   = Configurations::yml('_sfbuild/sfbuild.');
-
+            }
 
             $this->input        = $input;
             $this->output       = $output;
