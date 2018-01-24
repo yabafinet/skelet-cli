@@ -9,19 +9,8 @@
             Framework\Component\Console\SfBuild\LocalCommands\CreateControllerCommand::class =>[
                 'workspace'=>['dev']
             ],
-            Framework\Component\Console\SfBuild\RemoteCommands\WorkspaceCommand::class =>[
-                'workspace'=>['dev']
-            ],
             Framework\Component\Console\SfBuild\LocalCommands\SyncLocalRemote::class =>[
                 'workspace'=>['dev']
             ]
-        ],
-        'remote_commands'=>[
-            Framework\Component\Console\SfBuild\RemoteCommands\GitCommands::class =>[
-                'workspace'=>['dev']
-            ],
-            Framework\Component\Console\SfBuild\RemoteCommands\SfbuildCommands::class =>[
-                'workspace'=>['dev']
-            ]
-        ],
+        ]
     ];

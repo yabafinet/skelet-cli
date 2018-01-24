@@ -258,11 +258,21 @@
          * Crear y/o actualizar el repositorio de skelet-cli desde
          * el repositorio principal de skelet-framework
          *
+         * @param $comment
          * @return int
-         * @internal param $username
          */
-        public function createOrUpdateSkeletCliRepository()
+        public function createOrUpdateSkeletCliRepository($comment)
         {
+            if(! $comment) {
+                Utilities::local($this->input, $this->output)->error(
+                    'Se necesita un comentario para hacer un commit en skelet-cli.'
+                );
+                return;
+            }
+
+            // Configurando email para push.
+            $this->exec('config user.email yabafinet@gmail.com', $destination);
+
             $destination = $this->utils->getSkeletCLIRepositoryPath();
 
             if (! $destination) {
@@ -275,6 +285,10 @@
                 $this->fs->makeDirectory($destination);
             }
 
+            // Crear y entrar a una rama nueva para la
+            // actualización desde skelet-framework.
+            $branch_name = 'update-skelet-framework-'.date("Ymd");
+            $this->exec('checkout -b '.$branch_name, $destination);
 
             $this->cloneGitRepositoryWithStructure(
                 $this->utils->framework_repo,
@@ -291,6 +305,11 @@
                 $destination
             );
 
+
+            $this->exec('add .', $destination);
+            $this->exec('commit -m "'.$comment.'" ', $destination);
+            $this->exec('push origin '.$branch_name, $destination);
+
             return 1;
         }
 
@@ -298,12 +317,13 @@
         /**
          * Crear rama con prefijo del repositorio del usuario.
          *
-         * @param $username
-         * @param $branch_name
+         * @param      $username
+         * @param      $branch_name
+         * @param null $in_path
          */
-        public function createAndCheckOutBranch($username,$branch_name)
+        public function createAndCheckOutBranch($username,$branch_name, $in_path = null)
         {
-            $this->exec('checkout -b '.$username.'-'.$branch_name);
+            $this->exec('checkout -b '.$username.'-'.$branch_name, $in_path);
         }
 
         /**
@@ -344,9 +364,7 @@
 
                     Utilities::local($this->input, $this->output)->info('Created .gitignore');
                 }
-
             }
-
         }
 
         /**
@@ -468,14 +486,16 @@
          * Ejecutando comandos git.
          *
          * @param      $git_command
+         * @param null $in_path
          * @return int
-         * @internal param null $username
          */
-        public function exec($git_command)
+        public function exec($git_command, $in_path = null)
         {
-            $user_repo_path = $this->utils->getUserPath($this->username);
+            if (! $in_path) {
+                $in_path = $this->utils->getUserPath($this->username);
+            }
 
-            $cd     = "cd {$user_repo_path};";
+            $cd     = "cd {$in_path};";
             $repo   = new Process($cd." git ".$git_command);
 
             if ($this->ifEnabledOutput()) {
