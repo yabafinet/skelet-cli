@@ -85,7 +85,7 @@
             $this->input   = $command_base->input;
             $this->output  = $command_base->output;
             $this->command = $command_base;
-            $this->config  = Configurations::yml('_sfbuild/workspace.');
+            $this->config  = Utilities::local()->getWorkspaceConfig();
         }
 
         protected function configure()

@@ -24,5 +24,8 @@
 
     }
 
+    // Set a Time Zone
+    date_default_timezone_set('America/Santo_Domingo');
+
     // Helpers:
     require_once __DIR__.'/Helpers.php';

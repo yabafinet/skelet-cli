@@ -273,6 +273,8 @@
             $command   = 'export CONSOLE_TYPE="remote"; php '.$execute_in_path.'/sfbuild.php '.$command;
             $result    = $this->server->exec($command);
 
+            //d($result);
+
             Utilities::remote()->executeRemote($result,$this);
 
             $this->go();
@@ -310,7 +312,7 @@
          */
         function psStatusProcess($process_name)
         {
-            $ps = new Process('ps aux| grep php');
+            $ps = new Process('ps aux | grep php');
             $ps->run();
             $ps_result =  $ps->getOutput();
 

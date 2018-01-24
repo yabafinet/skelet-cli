@@ -45,26 +45,39 @@
             $this->input = $input;
             $this->output = $output;
 
-            if (isset($config)){
+            if ($this->isConsoleRemoteType()) {
 
-                $this->config = $config;
+                // Estas configuraciones son cargadas al ejecutar
+                // comandos en el servidor.
+
+                if (isset($config)){
+
+                    $this->config = $config;
+                } else {
+                    $this->config = Configurations::yml('_sfbuild/sfbuild.');
+                }
+
+                // Project Config
+                $this->project_repo         = $this->config['project']['git_repo'];
+                $this->project_path         = $this->config['project']['path'];
+                $this->project_temp_path    = $this->project_path.'/_temp';
+                $this->project_users        = $this->config['project']['users'];
+                $this->project_user_master  = $this->config['project']['user_master'];
+                $this->project_cell_template= $this->project_path.'/master/cell_template';
+                $this->cell_general_config  = require base_path().'/config/_sfbuild/cell.php';
+
+                // Framework Config
+                $this->framework_general_config  = require base_path().'/config/_sfbuild/framework.php';
+
+                $this->framework_repo = $this->config['skelet_framework']['git_repo'];
+
             } else {
-                $this->config = Configurations::yml('_sfbuild/sfbuild.');
+
+                $this->config       = $this->getWorkspaceConfig();
+                $this->project_path = $this->config['server']['path'];
+                $this->project_users= [ ];
             }
 
-            // Project Config
-            $this->project_repo         = $this->config['project']['git_repo'];
-            $this->project_path         = $this->config['project']['path'];
-            $this->project_temp_path    = $this->project_path.'/_temp';
-            $this->project_users        = $this->config['project']['users'];
-            $this->project_user_master  = $this->config['project']['user_master'];
-            $this->project_cell_template= $this->project_path.'/master/cell_template';
-            $this->cell_general_config  = require base_path().'/config/_sfbuild/cell.php';
-
-            // Framework Config
-            $this->framework_general_config  = require base_path().'/config/_sfbuild/framework.php';
-
-            $this->framework_repo = $this->config['skelet_framework']['git_repo'];
         }
 
         /**
@@ -73,7 +86,7 @@
          * @param $username
          * @return bool
          */
-        function getProjectUser($username)
+        public function getProjectUser($username)
         {
             if(isset($this->project_users[$username]))
                 return $this->project_users[$username];
@@ -81,10 +94,28 @@
                 return false;
         }
 
+        public function getWorkspaceConfig()
+        {
+            return Configurations::yml('_sfbuild/workspace.');
+        }
 
-        function getUsername()
+
+        public function getUsername()
         {
 
+        }
+
+        /**
+         * Verificar si la consola se esta ejecutando
+         * en un entorno remoto.
+         *
+         * @return bool
+         */
+        public function isConsoleRemoteType()
+        {
+            $console_type = isset($_SERVER['CONSOLE_TYPE']) ? $_SERVER['CONSOLE_TYPE'] : 'local';
+
+            return $console_type == 'remote'? true : false;
         }
 
         function getUserPath($username)
@@ -279,7 +310,7 @@
             $station            = new \stdClass();
 
             if(!$config)
-                $config         = Configurations::yml('workspace.');
+                $config         = self::getWorkspaceConfig();
 
             if(!isset($config))
                 return $config;
