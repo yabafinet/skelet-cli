@@ -1,0 +1,10 @@
+
+server:
+  user: "username"
+  host: "local.host"
+  path: "/patch/to/project"
+
+sfbuild:
+  cell_path: "/patch/to/project"
+  evolution_path: "/patch/to/project"
+  evolution_version: "current"

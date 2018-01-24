@@ -1,0 +1,16 @@
+#!/usr/bin/env php
+<?php
+
+    // application.php
+
+    require __DIR__.'/vendor/autoload.php';
+    require __DIR__.'/framework/autoload.php';
+
+    use Framework\Component\Console\Application;
+    use Symfony\Component\Console\Application as ApplicationBase;
+
+    $application = new Application( new ApplicationBase() );
+
+    $application->registerConfiguredCommands();
+
+    $application->run();

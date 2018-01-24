@@ -1,0 +1,8 @@
+/vendor
+/framework/storage/*
+/.ssh
+/.cloud-locale-test.skip
+/.cache
+/.bash_history
+*.svn/
+/storage
