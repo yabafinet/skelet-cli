@@ -118,7 +118,7 @@
             return $console_type == 'remote'? true : false;
         }
 
-        function getUserPath($username)
+        public function getUserPath($username)
         {
             return $this->project_path.'/repos/'.$username;
         }
@@ -240,6 +240,23 @@
         }
 
         /**
+         * Enviar al cli local para que ejecute un
+         * comando local.
+         *
+         * @param $command
+         * @return mixed
+         */
+        public function localCommand($command)
+        {
+            return $this->remoteMessage([
+                'cod'=>'00',
+                'type'=>'local_command',
+                'command'=>$command,
+            ]);
+
+        }
+
+        /**
          * @param array $data
          * @return string
          */
@@ -274,21 +291,31 @@
 
             $response = json_decode($response);
 
-            if(!isset($response->type))
+            if(! isset($response->type)) {
                 return;
+            }
 
-            if($response->type =='error')
+            if($response->type =='error') {
+
                 $startCommand->error($response->msg);
 
-            elseif ($response->type =='info')
+            } elseif ($response->type =='info') {
+
                 $startCommand->info($response->msg);
 
-            elseif ($response->type =='question')
-            {
+            }elseif ($response->type =='question') {
+
                 $startCommand->question($response->question, false,true);
-            }
-            elseif ($response->type =='console')
+
+            } elseif ($response->type =='console') {
+
                 $startCommand->output->writeln(str_replace('<\\','<',$response->msg));
+
+            } elseif ($response->type =='local_command') {
+
+                $startCommand->executeLocalCommand($response->command);
+            }
+
         }
 
         static function remote(InputInterface $input = null, OutputInterface $output = null)
