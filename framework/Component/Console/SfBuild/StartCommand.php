@@ -37,7 +37,7 @@
          * @var array
          */
         public $redirect_to_remote = [
-          'git','sfb'
+          'git','sfb','project'
         ];
         /**
          * @var SSH2;
@@ -171,6 +171,23 @@
         }
 
 
+        /**
+         * Ejecutar comandos locales.
+         *
+         * @param $command
+         */
+        public function executeLocalCommand($command)
+        {
+            $input      = new StringInput($command);
+            $command_str= $input->getFirstArgument();
+
+            $this
+                ->getApplication()
+                ->find($command_str)
+                ->run($input, $this->output);
+        }
+
+
 
         function isRedirectToRemote($command)
         {
@@ -194,10 +211,13 @@
             $question = new Question($this->tag()." ". $question. " ", false);
 
 
-            if($hidden) {
+            if ($hidden) {
+
                 $question->setHidden($hidden);
                 $question->setHiddenFallback(false);
+
             }else{
+
                 $bundles = array('AcmeDemoBundle', 'AcmeBlogBundle', 'AcmeStoreBundle');
                 $question->setAutocompleterValues($bundles);
             }
@@ -259,6 +279,8 @@
         function sfbCommand($command, $exe_in_path = null)
         {
 
+
+
             $this->last_remote_command  = $command;
 
             $cells_path   = Utilities::local()->getUserPath( $this->username );
@@ -272,8 +294,8 @@
 
             $command   = 'export CONSOLE_TYPE="remote"; php '.$execute_in_path.'/sfbuild.php '.$command;
             $result    = $this->server->exec($command);
-
-            //d($result);
+            $result    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $result);
+            d($result);
 
             Utilities::remote()->executeRemote($result,$this);
 

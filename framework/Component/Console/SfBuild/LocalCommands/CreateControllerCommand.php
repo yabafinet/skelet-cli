@@ -3,6 +3,7 @@
     namespace Framework\Component\Console\SfBuild\LocalCommands;
 
 
+    use Framework\Component\Console\SfBuild\Utilities;
     use Symfony\Component\Console\Command\Command;
     use Symfony\Component\Console\Input\InputArgument;
     use Symfony\Component\Console\Input\InputInterface;
@@ -42,6 +43,6 @@
 
         protected function execute(InputInterface $input, OutputInterface $output)
         {
-            //$this->start_command->info('Comando '.$this->getName()." ejecutado!");
+            Utilities::local($input, $output)->info('create:controller ejecutado...');
         }
     }

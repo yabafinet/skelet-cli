@@ -90,12 +90,12 @@
 
         protected function configure()
         {
-
             $this
                 ->setName('sync')
                 ->addArgument('remote_user', InputArgument::REQUIRED, '')
                 ->addOption('config','c',InputOption::VALUE_OPTIONAL,'Especifica si se quiere reconfigurar.')
-                ->setDescription('Sincronizacion de una celula con remoto.')
+                ->addOption('download','d',InputOption::VALUE_OPTIONAL,'Especificar los archovos a descargar desde el remoto.')
+                ->setDescription('Sincronización de una celula con remoto.')
                 ->setHelp(''."\n")
             ;
 
@@ -113,12 +113,14 @@
 
             $user          = $input->getArgument('remote_user');
 
-            if ($input->getOption('config') =='1') {
-                //$this->preConfigurationRsync($user);
-                return;
-            }
+            $download      = $input->getOption('download');
 
-            if ($this->startSyncProject($user)) {
+            if ($download) {
+
+                $this->downloadFiles($user,$download);
+
+            } elseif ($this->startSyncProject($user)) {
+
                 Utilities::local($input,$output)->error('Autentificacion fallida para '.$user);
 
             }else{
@@ -561,5 +563,54 @@
             }
 
             return $fs->get( $file_index );
+        }
+
+        /**
+         * Descargar archivos desde servidor remoto.
+         *
+         * 0 => array:6 [
+            "path" => "app/Controllers"
+            "timestamp" => 1516818457
+            "type" => "dir"
+            "dirname" => "app"
+            "basename" => "Controllers"
+            "filename" => "Controllers"
+        ]
+
+         * @param $user
+         * @param $path_for_download
+         */
+        public function downloadFiles($user, $path_for_download)
+        {
+            $sftp   = $this->connectSftp($user, Utilities::local()->project_path.'/repos');
+
+            $files  = $sftp->listContents($path_for_download, true);
+
+            $fs     =  new \Framework\Component\Filesystem\Filesystem();
+            $base_path = base_path();
+
+            foreach ($files as $file) {
+
+                $file_local = $base_path.'/'.$file['path'];
+
+                if (! $fs->exists($file_local)) {
+
+                    $this->output->writeln('<info> GET </info>  ==> '. $file['path']);
+
+                    $remote_file = $sftp->get($file['path']);
+
+                    if ($remote_file->isDir()) {
+                        $fs->makeDirectory($file_local,0755, true);
+                    }
+
+                    if ($remote_file->isFile()) {
+                        $fs->put($file_local, $remote_file->read());
+                    }
+
+
+                } else {
+                    $this->output->writeln('<error> EXIST </error>  ==> '. $file['path']);
+                }
+            }
         }
     }
