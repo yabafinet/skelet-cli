@@ -94,6 +94,20 @@
                 return false;
         }
 
+        /**
+         * @param null $username
+         * @return mixed
+         */
+        public function getUserRoles($username = null)
+        {
+            if(! $username) {
+                $username = $this->currentOsUsername();
+            }
+
+            $user_info = $this->getProjectUser($username);
+            return $user_info['roles'];
+        }
+
         public function getWorkspaceConfig()
         {
             return Configurations::yml('_sfbuild/workspace.');
