@@ -4,14 +4,11 @@
     namespace Framework\Component\Console\SfBuild\LocalCommands;
 
 
-    use Framework\Configurations;
-    use Illuminate\Support\Facades\Input;
-    use League\Flysystem\FileNotFoundException;
+
     use League\Flysystem\Filesystem;
-    use League\Flysystem\Sftp\SftpAdapter;
     use Symfony\Component\Finder\Finder;
-    use Symfony\Component\Process\InputStream;
-    use Symfony\Component\Process\Process;
+    use League\Flysystem\Sftp\SftpAdapter;
+    use League\Flysystem\FileNotFoundException;
     use Symfony\Component\Console\Command\Command;
     use Symfony\Component\Console\Input\InputOption;
     use Framework\Component\Console\SfBuild\Utilities;
@@ -20,7 +17,6 @@
     use Symfony\Component\Console\Command\LockableTrait;
     use Framework\Component\Console\SfBuild\StartCommand;
     use Symfony\Component\Console\Output\OutputInterface;
-    use Symfony\Component\Filesystem\Filesystem as SymfonyFilesystem;
 
 
     class SyncLocalRemote extends Command
@@ -94,7 +90,8 @@
                 ->setName('sync')
                 ->addArgument('remote_user', InputArgument::REQUIRED, '')
                 ->addOption('config','c',InputOption::VALUE_OPTIONAL,'Especifica si se quiere reconfigurar.')
-                ->addOption('download','d',InputOption::VALUE_OPTIONAL,'Especificar los archovos a descargar desde el remoto.')
+                ->addOption('download','d',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Especificar los archivos a descargar desde el remoto.')
+                ->addOption('exclude','e',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Archivos que se excluyen de la sincronización.')
                 ->setDescription('Sincronización de una celula con remoto.')
                 ->setHelp(''."\n")
             ;
@@ -114,14 +111,17 @@
             $user          = $input->getArgument('remote_user');
 
             $download      = $input->getOption('download');
+            $exclude       = $input->getOption('exclude');
+
+            d($download);
 
             if ($download) {
 
-                $this->downloadFiles($user,$download);
+                $this->downloadFiles($user,$download, $exclude);
 
             } elseif ($this->startSyncProject($user)) {
 
-                Utilities::local($input,$output)->error('Autentificacion fallida para '.$user);
+                Utilities::local($input,$output)->error('Autenticación fallida para '.$user);
 
             }else{
                 //Utilities::local($input,$output)->info('Conectado! ');
@@ -190,7 +190,7 @@
          */
         public function connectSftp($user,$destination)
         {
-            if(isset($this->filesystem)) {
+            if (isset($this->filesystem)) {
                 return $this->filesystem;
             }
 
@@ -568,49 +568,76 @@
         /**
          * Descargar archivos desde servidor remoto.
          *
-         * 0 => array:6 [
-            "path" => "app/Controllers"
-            "timestamp" => 1516818457
-            "type" => "dir"
-            "dirname" => "app"
-            "basename" => "Controllers"
-            "filename" => "Controllers"
-        ]
-
-         * @param $user
-         * @param $path_for_download
+         * @param       $user
+         * @param array $paths_for_download
+         * @param array $exclude_files
          */
-        public function downloadFiles($user, $path_for_download)
+        public function downloadFiles($user, array $paths_for_download, array $exclude_files = [])
         {
             $sftp   = $this->connectSftp($user, Utilities::local()->project_path.'/repos');
 
-            $files  = $sftp->listContents($path_for_download, true);
 
-            $fs     =  new \Framework\Component\Filesystem\Filesystem();
-            $base_path = base_path();
+            foreach ($paths_for_download as $download) {
 
-            foreach ($files as $file) {
+                $files      = $sftp->listContents($this->normalizeFile($download), true);
+                $fs         =  new \Framework\Component\Filesystem\Filesystem();
+                $base_path  = base_path();
 
-                $file_local = $base_path.'/'.$file['path'];
 
-                if (! $fs->exists($file_local)) {
+                foreach ($files as $file) {
 
-                    $this->output->writeln('<info> GET </info>  ==> '. $file['path']);
+                    $file_local        = $base_path.'/'.$file['path'];
+                    $file_local_path   = dirname($file_local);
 
-                    $remote_file = $sftp->get($file['path']);
-
-                    if ($remote_file->isDir()) {
-                        $fs->makeDirectory($file_local,0755, true);
+                    // Verificar si el archivo no esta en la lista
+                    // de archivos excluidos.
+                    if (in_array($file['path'], $exclude_files)) {
+                        continue;
                     }
 
-                    if ($remote_file->isFile()) {
-                        $fs->put($file_local, $remote_file->read());
+                    if (! $fs->exists($file_local)) {
+
+
+
+                        $remote_file = $sftp->get($file['path']);
+
+                        if ($remote_file->isDir()) {
+                            $fs->makeDirectory($file_local,0755, true);
+                        }
+
+                        if ($remote_file->isFile()) {
+
+                            if (! $fs->exists($file_local_path)) {
+                                $fs->makeDirectory($file_local_path,0755, true);
+                                $this->output->writeln('<info> NEW DIR </info>  ==> '. $file_local_path);
+                            }
+
+                            $fs->put($file_local, $remote_file->read());
+                        }
+
+                        $this->output->writeln('<info> GET </info>  ==> '. $file['path']);
+
+
+                    } else {
+                        $this->output->writeln('<error> EXIST </error>  ==> '. $file['path']);
                     }
-
-
-                } else {
-                    $this->output->writeln('<error> EXIST </error>  ==> '. $file['path']);
                 }
             }
+        }
+
+
+        /**
+         * Regularizar el nombre del archivo.
+         *
+         * @param $file
+         * @return string
+         */
+        private function normalizeFile($file)
+        {
+            if(substr($file, -1) !=='/') {
+                $file = $file.'/';
+            }
+
+            return $file;
         }
     }
