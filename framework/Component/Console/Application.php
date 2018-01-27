@@ -43,11 +43,11 @@
         function loadRegisteredCommands()
         {
 
-            $this->registered_commands = require_once base_path()."/config/_framework/command.php";
+            $this->registered_commands = require_once base_path()."/config/commands/commands.local.php";
 
             if($_SERVER['CONSOLE_TYPE'] =='remote') {
 
-                $remote_commands           = require_once base_path()."/config/_sfbuild/command_remote.php";
+                $remote_commands           = require_once base_path()."/config/commands/commands.remote.php";
                 $this->registered_commands['remote_commands'] = $remote_commands['commands'];
             }
 

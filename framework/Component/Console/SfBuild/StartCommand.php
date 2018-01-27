@@ -279,8 +279,6 @@
         function sfbCommand($command, $exe_in_path = null)
         {
 
-
-
             $this->last_remote_command  = $command;
 
             $cells_path   = Utilities::local()->getUserPath( $this->username );
@@ -295,7 +293,8 @@
             $command   = 'export CONSOLE_TYPE="remote"; php '.$execute_in_path.'/sfbuild.php '.$command;
             $result    = $this->server->exec($command);
             $result    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $result);
-            d($result);
+
+            //d($result);
 
             Utilities::remote()->executeRemote($result,$this);
 

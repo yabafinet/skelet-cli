@@ -26,6 +26,7 @@
         public  $project_cell_template;
         public  $project_user_master;
         public  $project_users;
+        public  $project_distribution_config = array();
 
         public  $framework_repo;
 
@@ -35,7 +36,7 @@
          *
          * @var array|mixed
          */
-        private $framework_general_config = [];
+        private $skelet_framework_config = [];
 
         public  $cell_general_config = [];
 
@@ -54,7 +55,7 @@
 
                     $this->config = $config;
                 } else {
-                    $this->config = Configurations::yml('_sfbuild/sfbuild.');
+                    $this->config = $this->getDistributionControl();
                 }
 
                 // Project Config
@@ -62,12 +63,12 @@
                 $this->project_path         = $this->config['project']['path'];
                 $this->project_temp_path    = $this->project_path.'/_temp';
                 $this->project_users        = $this->config['project']['users'];
-                $this->project_user_master  = $this->config['project']['user_master'];
+                //$this->project_user_master  = $this->config['project']['user_master'];
                 $this->project_cell_template= $this->project_path.'/master/cell_template';
                 $this->cell_general_config  = require base_path().'/config/_sfbuild/cell.php';
 
                 // Framework Config
-                $this->framework_general_config  = require base_path().'/config/_sfbuild/framework.php';
+                $this->skelet_framework_config  = $this->getSkeletFrameworkConfig();
 
                 $this->framework_repo = $this->config['skelet_framework']['git_repo'];
 
@@ -144,22 +145,22 @@
 
         function getFrameworkCoreStructure()
         {
-            return $this->framework_general_config['files_structure']['core'];
+            return $this->skelet_framework_config['files_structure']['core'];
         }
 
         function getSkeletCLIStructure()
         {
-            return $this->framework_general_config['files_structure']['cli']['files'];
+            return $this->skelet_framework_config['files_structure']['cli']['files'];
         }
 
         function getSkeletCLIFilesStructureChange()
         {
-            return $this->framework_general_config['files_structure']['cli']['files_structure_change'];
+            return $this->skelet_framework_config['files_structure']['cli']['files_structure_change'];
         }
 
         function getSkeletCLIRepositoryPath()
         {
-            return $this->framework_general_config['files_structure']['cli']['repo_path'];
+            return $this->skelet_framework_config['files_structure']['cli']['repo_path'];
         }
 
         function getCellAppStructure()
@@ -170,6 +171,38 @@
         function getCellFrameworkStructure()
         {
             return $this->cell_general_config['files_structure']['framework'];
+        }
+
+
+        /**
+         * Obtener la configuración de distribución de los
+         * fuentes del proyecto.
+         *
+         * @return mixed
+         */
+        public function getDistributionControl()
+        {
+            if (! $this->project_distribution_config) {
+                $this->project_distribution_config = require base_path().'/../../config/skelet/project.distributions.php';
+            }
+
+            return $this->project_distribution_config;
+        }
+
+
+        /**
+         * Obtener la configuración de distribución de los
+         * fuentes del proyecto.
+         *
+         * @return mixed
+         */
+        public function getSkeletFrameworkConfig()
+        {
+            if (! $this->skelet_framework_config) {
+                $this->skelet_framework_config = require base_path().'/../../config/skelet/skelet.framework.php';
+            }
+
+            return $this->skelet_framework_config;
         }
 
         /**
