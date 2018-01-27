@@ -67,10 +67,7 @@
                 $this->project_cell_template= $this->project_path.'/master/cell_template';
                 $this->cell_general_config  = require base_path().'/config/_sfbuild/cell.php';
 
-                // Framework Config
-                $this->skelet_framework_config  = $this->getSkeletFrameworkConfig();
 
-                $this->framework_repo = $this->config['skelet_framework']['git_repo'];
 
             } else {
 
@@ -79,6 +76,9 @@
                 $this->project_users= [ ];
             }
 
+            // Framework Config
+            $this->skelet_framework_config  = $this->getSkeletFrameworkConfig();
+            $this->framework_repo           = $this->skelet_framework_config['framework_git_repo'];
         }
 
         /**
