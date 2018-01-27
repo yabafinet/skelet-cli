@@ -29,11 +29,6 @@
         {
             $this->application  = $application;
 
-            //$this->framework    = new App();
-            //$this->framework->setTypeApplication('console');
-            //$this->framework->setSingleton();
-            //$this->framework->buildFromConsoleApplication();
-
             if(! isset($_SERVER['CONSOLE_TYPE'])) {
                 $_SERVER['CONSOLE_TYPE'] = 'local';
             }
@@ -43,11 +38,11 @@
         function loadRegisteredCommands()
         {
 
-            $this->registered_commands = require_once base_path()."/config/commands/commands.local.php";
+            $this->registered_commands = require base_path()."/config/commands/commands.local.php";
 
             if($_SERVER['CONSOLE_TYPE'] =='remote') {
 
-                $remote_commands           = require_once base_path()."/config/commands/commands.remote.php";
+                $remote_commands       = require base_path()."/config/commands/commands.remote.php";
                 $this->registered_commands['remote_commands'] = $remote_commands['commands'];
             }
 
@@ -59,9 +54,7 @@
             //return $this
         }
 
-        /**
-         *
-         */
+        /** */
         function run()
         {
 
@@ -81,9 +74,7 @@
             $this->application->add($command);
         }
 
-        /**
-         *
-         */
+        /** */
         function registerConfiguredCommands()
         {
             foreach ($this->registered_commands['commands'] as $command=>$config)
@@ -101,16 +92,40 @@
                 $this->registerConfiguredFrameServerCommands();
             }
 
+            $this->registerInternalsSkeletCommands();
         }
 
-        /**
-         *
-         */
+        /**  */
         function registerConfiguredFrameServerCommands()
         {
             foreach ($this->registered_commands['remote_commands'] as $command=>$config) {
                 $this->add(new $command($this->start_command));
             }
+        }
+
+        /**
+         * Registrando comandos internos de Skelet Framework.
+         * estos comandos solo serán utilizados para procesos
+         * de división de códigos para su distribución en los
+         * diferentes repositorios de skelet.
+         *
+         * @return bool
+         */
+        function registerInternalsSkeletCommands()
+        {
+            $file_commands = base_path()."/config/commands/commands.skelet.php";
+
+            if (! file_exists($file_commands)) {
+                return false;
+            }
+
+            $commands = require $file_commands;
+
+            foreach ($commands['commands'] as $command=>$config) {
+                $this->add(new $command($this->start_command));
+            }
+
+            return true;
         }
 
         function setFrameServerStartCommand($start_command)

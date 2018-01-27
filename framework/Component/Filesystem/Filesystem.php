@@ -115,7 +115,7 @@
         {
             foreach ($changes as $file => $change) {
                 if (isset($change['rename'])) {
-                   $this->move($file, $change['rename']);
+                   $this->move($origin.'/'.$file, $destination.'/'.$change['rename']);
                 }
             }
 
