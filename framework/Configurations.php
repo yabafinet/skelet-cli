@@ -24,7 +24,7 @@
         function __construct(array $app_config =[])
         {
             $this->loadEnvironment();
-            $this->loadFramework();
+            $this->loadFrameworkConfigurations();
             $this->configStatic = $this->config;
         }
 
@@ -49,13 +49,19 @@
 
 
         /**
-         * Configuraciones del Framework.
+         * Cargando configuraciones de skelet-framework.
+         * normalmente alojadas en ==> config/_framework/framework.yml
+         *
+         * @return void
          */
-        public function loadFramework()
+        public function loadFrameworkConfigurations()
         {
             $configs = [];
+
             try {
-                $configs = Yaml::parse(file_get_contents(__DIR__.'/../config/framework.yml'));
+                $configs = Yaml::parse(
+                    file_get_contents(base_path().'/config/_framework/framework.yml')
+                );
 
             } catch (ParseException $e) {
                 //printf("Unable to parse the YAML string: %s", $e->getMessage());
@@ -75,7 +81,7 @@
         }
 
         /**
-         * Parametros de configuracion del Framework
+         * Parámetros de configuración del Framework
          *  normalmente config/framework.yml
          *
          * @param $key
@@ -93,7 +99,6 @@
                 return $default_value;
 
         }
-
 
         /**
          * Configuraciones del Framework.
@@ -135,7 +140,7 @@
             } else {
 
                 $instance->configWithFile[$file] = $instance->loadFileYml($file);
-                $valueKey    = $instance->parseKey2($instance->configWithFile[$file],$key);
+                $valueKey = $instance->parseKey2($instance->configWithFile[$file],$key);
             }
 
             if (isset($valueKey)) {
@@ -163,8 +168,8 @@
 
 
         /**
-         * Parametros de configuracion del entorno
-         *  Desarrollo, Test y Produccion
+         * Parámetros de configuración del entorno
+         *  Desarrollo, Test y Producción
          *
          * @param $key
          * @param $default_value

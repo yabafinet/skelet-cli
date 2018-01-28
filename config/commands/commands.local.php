@@ -3,13 +3,13 @@
 
     return [
         'commands'=> [
-            Framework\Component\Console\SfBuild\StartCommand::class =>[
+            Framework\Component\Console\SkeletCli\InitCommand::class =>[
                 'workspace'=>['dev','master']
             ],
-            Framework\Component\Console\SfBuild\LocalCommands\CreateControllerCommand::class =>[
+            Framework\Component\Console\SkeletCli\LocalCommands\CreateControllerCommand::class =>[
                 'workspace'=>['dev']
             ],
-            Framework\Component\Console\SfBuild\LocalCommands\SyncLocalRemote::class =>[
+            Framework\Component\Console\SkeletCli\LocalCommands\SyncLocalRemote::class =>[
                 'workspace'=>['dev']
             ]
         ]

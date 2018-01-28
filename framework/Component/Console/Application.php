@@ -3,7 +3,7 @@
     namespace Framework\Component\Console;
 
     use Symfony\Component\Console\Command\Command;
-    use Framework\Component\Console\SfBuild\StartCommand;
+    use Framework\Component\Console\SkeletCli\InitCommand;
     use Symfony\Component\Console\Application as ApplicationBase;
     use Framework\Contracts\Console\Application as ApplicationContractsBase;
 
@@ -15,7 +15,7 @@
         public  $bootComponents;
         private $registered_commands = array();
         /**
-         * @var StartCommand;
+         * @var InitCommand;
          */
         public  $start_command;
 
@@ -81,7 +81,7 @@
             {
                 $instanceCommand = new $command();
 
-                if ($instanceCommand instanceof StartCommand) {
+                if ($instanceCommand instanceof InitCommand) {
                     $this->setFrameServerStartCommand($instanceCommand);
                 }
 

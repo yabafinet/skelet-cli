@@ -1,0 +1,9 @@
+
+server:
+  user: "username"
+  host: "local.host"
+  path: "/patch/to/project"
+
+composer:
+  require:
+    symfony/log: *
