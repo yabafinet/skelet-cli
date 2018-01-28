@@ -14,6 +14,8 @@
     use Symfony\Component\Console\Input\InputArgument;
     use Symfony\Component\Console\Input\InputInterface;
     use Symfony\Component\Console\Output\OutputInterface;
+    use Symfony\Component\Yaml\Exception\ParseException;
+    use Symfony\Component\Yaml\Yaml;
 
 
     class InitCommand extends Command
@@ -91,11 +93,20 @@
         }
 
 
+        /**
+         * @throws \Exception
+         */
         function getConfigurationStation()
         {
-            $this->config   = Configurations::yml('_skelet-cli/workspace.');
-            $this->e_version= $this->config['sfbuild']['evolution_version'];
-            $this->e_patch  = $this->config['sfbuild']['evolution_path'].'/master/'.$this->e_version;
+            $configs = [];
+            try {
+                $configs = Yaml::parse(file_get_contents(base_path().'/config/_skelet-cli/workspace.yml'));
+
+            } catch (ParseException $e) {
+                throw new \Exception("It was not possible to find the workspace configuration.");
+            }
+
+            $this->config   = $configs;
         }
 
         function getWorkspaceType()
@@ -123,9 +134,9 @@
 //            sleep(5);
 //            $io->progressAdvance(10);
 //            $io->progressFinish();
-            $io->newLine();
+            //$io->newLine();
 
-            $io->choice('Select the queue to analyze', array('queue1', 'queue2', 'queue3'));
+            //$io->choice('Select the queue to analyze', array('queue1', 'queue2', 'queue3'));
         }
 
         static function tag()
@@ -303,7 +314,7 @@
                 $execute_in_path = $cells_path;
             }
 
-            $command   = 'export CONSOLE_TYPE="remote"; php '.$execute_in_path.'/sfbuild.php '.$command;
+            $command   = 'export CONSOLE_TYPE="remote"; php '.$execute_in_path.'/skelet-cli '.$command;
             $result    = $this->server->exec($command);
             $result    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $result);
 
@@ -325,7 +336,7 @@
 
             if (! $this->psStatusProcess('sync')) {
                 $this->process['sync'] = new Process(
-                    'php '.base_path().'/sfbuild.php sync '.$this->username.'.'.$this->auth->getPassword().' > /dev/null 2>&1 &'
+                    'php '.base_path().'/skelet-cli sync '.$this->username.'.'.$this->auth->getPassword().' > /dev/null 2>&1 &'
                 );
                 $this->process['sync']->run();
                 $this->info('sync process started...');

@@ -113,6 +113,10 @@
          */
         public function modifications(array $changes, $origin, $destination = null, $options = null)
         {
+            if (! $destination) {
+                $destination = $origin;
+            }
+
             foreach ($changes as $file => $change) {
 
                 $origin_file = $origin.'/'.$file;
