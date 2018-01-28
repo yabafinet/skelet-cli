@@ -35,6 +35,8 @@
          */
         public $output;
 
+        private $enabled_output;
+
         /**
          * Git constructor.
          *
@@ -83,6 +85,81 @@
             $this->fs->deleteDirectory($temporally_path);
 
         }
+
+        /**
+         * Sincronizar dos directorios tomando en cuenta
+         * los archivos pasados en $files_structure
+         *
+         * @param array $files_structure
+         * @param       $origin
+         * @param       $destination_path
+         * @return bool
+         */
+        public function syncFilesStructure(array $files_structure, $origin, $destination_path)
+        {
+
+            foreach ($files_structure as $file => $config) {
+
+                $file_origin       = $origin.'/'.$file;
+                $destination       = $destination_path.'/'.$file;
+                $exclude_option    = '';
+                $modifications     = null;
+
+                // Config Exclude Files
+                if(isset($config['exclude'])) {
+                    foreach ($config['exclude'] as $exclude) {
+
+                        $exclude_option .=' --exclude="'.$exclude.'" ';
+                    }
+                }
+                // File Require Modifications
+                if(isset($config['modification'])) {
+                    foreach ($config['modification'] as $mod_type=>$new_value) {
+                        $modifications[$file][$mod_type] = $new_value;
+                    }
+                }
+
+                $this->consoleStyle()->text('sync origin      <== '.$file_origin);
+                $this->consoleStyle()->text('     destination ==> '.$destination);
+
+                if (is_dir($file_origin)) {
+                    $file_origin   .='/*';
+
+                    if (! Str::endsWith('/', $destination)) {
+                        $destination .='/';
+                    }
+                }
+
+                if ($this->fs->isFile($file_origin)) {
+
+                    $base_path = $this->fs->dirname($destination);
+
+                    if(! $this->fs->isDirectory($base_path)) {
+                        $this->fs->makeDirectory($base_path,0755,true);
+                    }
+                }
+
+                $rsync_command = "rsync -uavP $exclude_option --size-only --delete --progress ".$file_origin.' '.$destination;
+                $repo = new Process($rsync_command);
+
+                if ($repo->run() ==1) {
+
+                } else {
+
+                }
+
+                //Utilities::local($this->input, $this->output)->message("rsync: \n".$repo->getOutput());
+
+                if($modifications) {
+                    $this->fs->modifications($modifications, $destination_path);
+                    $this->consoleStyle()->note('Modification:'.$file_origin);
+                }
+            }
+
+            $this->consoleStyle()->comment("Synchronization Structure success!");
+            return true;
+        }
+
 
 
         /**
