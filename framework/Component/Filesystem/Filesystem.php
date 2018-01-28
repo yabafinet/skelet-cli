@@ -114,8 +114,23 @@
         public function modifications(array $changes, $origin, $destination = null, $options = null)
         {
             foreach ($changes as $file => $change) {
+
+                $origin_file = $origin.'/'.$file;
+
                 if (isset($change['rename'])) {
-                   $this->move($origin.'/'.$file, $destination.'/'.$change['rename']);
+
+                    $this->move($origin_file, $destination.'/'.$change['rename']);
+
+                } elseif (isset($change['delete']) && $change['delete'] == true) {
+
+                    if ($this->isFile($origin_file)) {
+
+                        $this->delete($origin_file);
+
+                    } else {
+                        $this->deleteDirectory($origin_file);
+                    }
+
                 }
             }
 
