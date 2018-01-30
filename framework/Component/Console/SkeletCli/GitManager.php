@@ -37,6 +37,8 @@
 
         private $enabled_output;
 
+        private $git_output;
+
         /**
          * Git constructor.
          *
@@ -162,43 +164,64 @@
 
 
 
+        public function detectedGitRepository($path)
+        {
+            $this->git('status');
+        }
+
+
+        /**
+         * Crear rama con prefijo del repositorio del usuario.
+         *
+         * @param      $branch_name
+         * @param null $in_path
+         */
+        public function createAndCheckOutBranch($branch_name, $in_path = null)
+        {
+            $this->exec('checkout -b '.$branch_name, $in_path);
+        }
+
+
         /**
          * Ejecutando comandos git.
          *
          * @param      $git_command
          * @param null $in_path
-         * @return int
+         * @return GitManager
          */
         public function exec($git_command, $in_path)
         {
+            $this->clearGitOutput();
 
             $cd     = "cd {$in_path};";
             $repo   = new Process($cd." git ".$git_command);
-            $this->consoleStyle()->text('git command: '.$git_command);
+
 
             if ($this->ifEnabledOutput()) {
 
-                return $repo->run(function ($type, $buffer) {
-
-                    if (Process::ERR === $type) {
-                        //$this->consoleStyle()->text(''.$buffer);
-                    } else {
-                        //Utilities::local($this->input, $this->output)->error($buffer);
-                    }
-
-                });
-
-            } else {
-
-                try {
-
-                    $repo->mustRun();
-                    return $repo->getOutput();
-
-                } catch (ProcessFailedException $e) {
-                    return $e->getMessage();
-                }
+                $this->consoleStyle()->text('git command: '.$git_command);
             }
+
+            $repo->run(function ($type, $buffer) {
+                $this->setGitOutput($buffer);
+            });
+
+
+            return $this;
+        }
+
+        private function clearGitOutput()
+        {
+            $this->git_output = array();
+        }
+        public function setGitOutput($git_output)
+        {
+           $this->git_output[] = $git_output;
+        }
+
+        public function getOutput()
+        {
+            return implode("\n", $this->git_output);
         }
 
         /**

@@ -84,5 +84,4 @@
         {
             $this->password = $password;
         }
-
     }

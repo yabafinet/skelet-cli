@@ -44,7 +44,7 @@
                 $this->config   = $config;
             } else
             {
-                $this->config   = Configurations::yml('_skelet-cli/sfbuild.');
+                $this->config   = Configurations::yml('_skelet-cli/workspace.');
             }
 
             $this->input        = $input;

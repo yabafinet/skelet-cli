@@ -4,6 +4,12 @@ server:
   host: "local.host"
   path: "/patch/to/project"
 
+project:
+  path: "/patch/to/project"
+
+skelet-cli-server:
+  path: "/patch/to/skelet-cli-server"
+
 composer:
   require:
-    symfony/log: *
+    symfony/log: "*"
