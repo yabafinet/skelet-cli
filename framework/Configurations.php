@@ -47,21 +47,24 @@
         }
 
 
-
         /**
          * Cargando configuraciones de skelet-framework.
          * normalmente alojadas en ==> config/_framework/framework.yml
          *
-         * @return void
+         * @return bool
          */
         public function loadFrameworkConfigurations()
         {
             $configs = [];
 
+            $file = base_path().'/config/_framework/framework.yml';
+
+            if (! file_exists($file)) {
+                return false;
+            }
+
             try {
-                $configs = Yaml::parse(
-                    file_get_contents(base_path().'/config/_framework/framework.yml')
-                );
+                $configs = Yaml::parse(file_get_contents($file));
 
             } catch (ParseException $e) {
                 //printf("Unable to parse the YAML string: %s", $e->getMessage());

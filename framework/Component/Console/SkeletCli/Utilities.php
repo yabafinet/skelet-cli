@@ -42,7 +42,7 @@
          */
         private $skelet_framework_config = [];
 
-        public  $cell_general_config = [];
+        //public  $cell_general_config = [];
 
 
         function __construct(InputInterface $input = null, OutputInterface $output = null, array $config = null)
@@ -69,7 +69,7 @@
                 $this->project_users        = $this->config['project']['users'];
                 //$this->project_user_master  = $this->config['project']['user_master'];
                 $this->project_cell_template= $this->project_path.'/master/cell_template';
-                $this->cell_general_config  = require base_path().'/config/_skelet-cli/cell.php';
+                //$this->cell_general_config  = require base_path().'/config/_skelet-cli/cell.php';
 
 
 
@@ -301,7 +301,7 @@
          * @param $command
          * @return mixed
          */
-        public function localCommand($command)
+        public function executeLocalCommand($command)
         {
             return $this->remoteMessage([
                 'cod'=>'00',

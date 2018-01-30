@@ -94,16 +94,24 @@
 
 
         /**
-         * @throws \Exception
+         * Cargar la configuración de la skelet-cli
+         *
          */
         function getConfigurationStation()
         {
             $configs = [];
+
+            $file = base_path().'/config/_skelet-cli/workspace.yml';
+
+            if (!file_exists($file)) {
+                return;
+            }
+
             try {
-                $configs = Yaml::parse(file_get_contents(base_path().'/config/_skelet-cli/workspace.yml'));
+                $configs = Yaml::parse(file_get_contents($file));
 
             } catch (ParseException $e) {
-                throw new \Exception("It was not possible to find the workspace configuration.");
+                exit('No es posible leer la configuración del workspace.');
             }
 
             $this->config   = $configs;
@@ -173,7 +181,7 @@
 
             }elseif($this->isRedirectToRemote($command_str))
             {
-                $this->sfbCommand($input);
+                $this->executeRemoteCommand($input);
 
             }else{
 
@@ -194,11 +202,26 @@
 
         }
 
+        /**
+         * Obtener el directorio donde se encuentra
+         * skelet-cli-server para ejecutar comandos
+         * remotos.
+         *
+         * @return mixed
+         */
+        private function getSkeletCliServerPath()
+        {
+            if (! isset($this->config['skelet-cli-server']['path'])) {
+                return $this->config['server']['path'].'/skelet-cli-server';
+            }
+            return $this->config['skelet-cli-server']['path'];
+        }
 
         /**
          * Ejecutar comandos locales.
          *
          * @param $command
+         * @throws \Exception
          */
         public function executeLocalCommand($command)
         {
@@ -212,13 +235,23 @@
         }
 
 
-
+        /**
+         * Verificar si el comando se redireccionara
+         * a skelet-cli-server
+         *
+         * @param $command
+         * @return bool
+         */
         function isRedirectToRemote($command)
         {
-             if(in_array($command, $this->redirect_to_remote))
+             if(in_array($command, $this->redirect_to_remote)) {
+
                  return true;
-             else
+
+             } else {
+
                  return false;
+             }
         }
 
 
@@ -253,7 +286,7 @@
             if($report_to_last_command)
             {
                 $last_command = $this->getLastRemoteCommand().' --ask="'.$response.'" ';
-                $this->sfbCommand($last_command);
+                $this->executeRemoteCommand($last_command);
             }
 
 
@@ -285,7 +318,7 @@
 
         function sfbInit()
         {
-            $this->sfbCommand('sfb build --ask=Y', $this->e_patch);
+            $this->executeRemoteCommand('sfb build --ask=Y', $this->e_patch);
         }
 
         function getLastRemoteCommand()
@@ -300,25 +333,28 @@
          * @param      $command
          * @param null $exe_in_path
          */
-        function sfbCommand($command, $exe_in_path = null)
+        function executeRemoteCommand($command, $exe_in_path = null)
         {
+            if (!$exe_in_path) {
+                $exe_in_path = $this->getSkeletCliServerPath();
+            }
 
             $this->last_remote_command  = $command;
 
-            $cells_path   = Utilities::local()->getUserPath( $this->username );
+            //$cells_path   = Utilities::local()->getUserPath( $this->username );
 
-            if ($exe_in_path) {
-                $execute_in_path = $exe_in_path;
+//            if ($exe_in_path) {
+//                $execute_in_path = $exe_in_path;
+//
+//            } else {
+//                $execute_in_path = $cells_path;
+//            }
 
-            } else {
-                $execute_in_path = $cells_path;
-            }
-
-            $command   = 'export CONSOLE_TYPE="remote"; php '.$execute_in_path.'/skelet-cli '.$command;
+            $command   = 'export CONSOLE_TYPE="remote"; php '.$exe_in_path.'/skelet-cli '.$command;
             $result    = $this->server->exec($command);
             $result    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $result);
 
-            //d($result);
+            d($result);
 
             Utilities::remote()->executeRemote($result,$this);
 

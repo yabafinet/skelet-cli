@@ -33,7 +33,10 @@
 
         public $ssh;
 
-        public $config = array();
+        /**
+         * @var Configuration
+         */
+        public $config;
 
         /**
          * Archivo donde almacenamos el ultimo index de sincronización.
@@ -70,6 +73,19 @@
 
 
         /**
+         * @var Utilities
+         */
+        public $utils;
+
+        /**
+         * Esta propiedad en true solo mostrara
+         * las acciones pero no las ejecutara.
+         *
+         * @var bool
+         */
+        private $is_simulate = false;
+
+        /**
          * SyncLocalRemote constructor.
          *
          * @param InitCommand|null $command_base
@@ -84,7 +100,7 @@
                 $this->command = $command_base;
             }
 
-            $this->config  = Utilities::local()->getWorkspaceConfig();
+            $this->config   = new Configuration();
         }
 
         protected function configure()
@@ -95,6 +111,7 @@
                 ->addOption('config','c',InputOption::VALUE_OPTIONAL,'Especifica si se quiere reconfigurar.')
                 ->addOption('download','d',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Especificar los archivos a descargar desde el remoto.')
                 ->addOption('exclude','e',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Archivos que se excluyen de la sincronización.')
+                ->addOption('simulate','s',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Simular la sincronización del proyecto.')
                 ->setDescription('Sincronización de una celula con remoto.')
                 ->setHelp(''."\n")
             ;
@@ -110,11 +127,18 @@
         {
             $this->input   = $input;
             $this->output  = $output;
+            $this->utils   = Utilities::local($this->input, $this->output);
 
             $user          = $input->getArgument('remote_user');
 
             $download      = $input->getOption('download');
             $exclude       = $input->getOption('exclude');
+
+            $simulate      = $input->getOption('simulate');
+
+            if($simulate) {
+                $this->enabledSimulation();
+            }
 
             d($download);
 
@@ -124,7 +148,7 @@
 
             } elseif ($this->startSyncProject($user)) {
 
-                Utilities::local($input,$output)->error('Autenticación fallida para '.$user);
+                $this->utils->error('Autenticación fallida para '.$user);
 
             }else{
                 //Utilities::local($input,$output)->info('Conectado! ');
@@ -142,7 +166,7 @@
         {
             $this->dirs_for_sync = [
               base_path().'/app',
-              base_path().'/public/assets',
+              //base_path().'/public/assets',
             ];
 
             return $this->dirs_for_sync;
@@ -157,16 +181,9 @@
          */
         function startSyncProject($user)
         {
-            $cell_path_repos       =  Utilities::stationConfig()->cells_repos;
-            $cell_path_buildings   =  Utilities::stationConfig()->buildings_patch;
-
-            //$this->output->writeln('Cell Path(repos): '.$cell_path_repos);
-            //$this->output->writeln('Cell Path(builds): '.$cell_path_buildings);
-
-            //$this->sincroniceStructureDirectories();
 
             try {
-                if ($this->syncSftp($user, $cell_path_repos)) {
+                if ($this->syncSftp($user, $this->config->getUserRepositoryPath())) {
                     sleep(10);
                     $this->startSyncProject($user);
                 }
@@ -201,7 +218,7 @@
                 return $this->filesystem;
             }
 
-            $host   = Utilities::stationConfig()->server_host;
+            $host   = $this->config->getProjectServerHost();
             $pass   = '';
 
             // Dividir user/pass
@@ -216,7 +233,7 @@
                 'port'      => 22,
                 'username'  => $user,
                 'password'  => $pass,
-                'root'      => $destination.'/'.$user,
+                'root'      => $destination,
                 'timeout'   => 10,
             ]);
 
@@ -243,7 +260,10 @@
             $last_modified_dir  = $this->getTheLatestModifiedDirectories($index_modified);
             $modified_files     = $this->getTheLatestModifiedFiles($last_modified_dir);
 
-            $this->output->writeln("");
+            if($this->isSimulated()) {
+                $this->output->writeln(" <info> - - - is simulation!</info>");
+            }
+
             $this->output->writeln('- - - - - - - - - - - - - - - - - - - - - - ');
             $this->output->writeln($index_modified.' / last synchronisation. ');
 
@@ -267,17 +287,22 @@
 
                     if ($filesystem->has($remoteFile)) {
 
-                        if (! $filesystem->put($remoteFile, fopen($targetFile, 'r+'))) {
-                            return false;
+                        if(! $this->isSimulated()) {
+                            if (! $filesystem->put($remoteFile, fopen($targetFile, 'r+'))) {
+                                return false;
+                            }
                         }
 
                         $status = '<info>PUT</info>';
 
                     } else {
 
-                        if (! $filesystem->write($remoteFile, fopen($targetFile, 'r+'))) {
-                            return false;
+                        if(! $this->isSimulated()) {
+                            if (! $filesystem->write($remoteFile, fopen($targetFile, 'r+'))) {
+                                return false;
+                            }
                         }
+
 
                         $status = '<info>WR </info>';
 
@@ -371,7 +396,7 @@
         }
 
         /**
-         * Indexar los archivos locales que que seran sincronizados
+         * Indexar los archivos locales que seran sincronizados
          * con el servidor remoto.
          *
          * @param array $directories
@@ -495,10 +520,14 @@
 
                         try {
 
-                            $sftp->delete($this->getRemotePatch($file_indexed));
+                            if(! $this->isSimulated()) {
+                                $sftp->delete($this->getRemotePatch($file_indexed));
+                            }
+
                             $this->output->writeln('<info>DEL REMOTE</info>: '. $file_indexed);
 
-                        } catch (FileNotFoundException $exception) {
+                        } catch (\Exception $exception) {
+
                             $this->output->writeln('<error>DEL REMOTE</error>: '. $exception->getMessage());
                         }
 
@@ -582,7 +611,7 @@
          */
         public function downloadFiles($user, array $paths_for_download, array $exclude_files = [])
         {
-            $sftp   = $this->connectSftp($user, Utilities::local()->project_path.'/repos');
+            $sftp   = $this->connectSftp($user, $this->config->getUserRepositoryPath());
 
 
             foreach ($paths_for_download as $download) {
@@ -605,22 +634,31 @@
 
                     if (! $fs->exists($file_local)) {
 
-
-
                         $remote_file = $sftp->get($file['path']);
 
                         if ($remote_file->isDir()) {
-                            $fs->makeDirectory($file_local,0755, true);
+
+                            if(! $this->isSimulated()) {
+                                $fs->makeDirectory($file_local,0755, true);
+                            }
+
                         }
 
                         if ($remote_file->isFile()) {
 
                             if (! $fs->exists($file_local_path)) {
-                                $fs->makeDirectory($file_local_path,0755, true);
+
+                                if(! $this->isSimulated()) {
+                                    $fs->makeDirectory($file_local_path,0755, true);
+                                }
+
                                 $this->output->writeln('<info> NEW DIR </info>  ==> '. $file_local_path);
                             }
 
-                            $fs->put($file_local, $remote_file->read());
+                            if(! $this->isSimulated()) {
+                                $fs->put($file_local, $remote_file->read());
+                            }
+
                         }
 
                         $this->output->writeln('<info> GET </info>  ==> '. $file['path']);
@@ -631,6 +669,20 @@
                     }
                 }
             }
+        }
+
+        /**
+         * Habilitar la simulación de sincronización.
+         *
+         */
+        public function enabledSimulation()
+        {
+            $this->is_simulate = true;
+        }
+
+        public function isSimulated()
+        {
+            return $this->is_simulate;
         }
 
 
