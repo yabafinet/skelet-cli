@@ -55,21 +55,21 @@
                 // Estas configuraciones son cargadas al ejecutar
                 // comandos en el servidor.
 
-                if (isset($config)){
-
-                    $this->config = $config;
-                } else {
-                    $this->config = $this->getDistributionControl();
-                }
-
-                // Project Config
-                $this->project_repo         = $this->config['project']['git_repo'];
-                $this->project_path         = $this->config['project']['path'];
-                $this->project_temp_path    = $this->project_path.'/_temp';
-                $this->project_users        = $this->config['project']['users'];
-                //$this->project_user_master  = $this->config['project']['user_master'];
-                $this->project_cell_template= $this->project_path.'/master/cell_template';
-                //$this->cell_general_config  = require base_path().'/config/_skelet-cli/cell.php';
+//                if (isset($config)){
+//
+//                    $this->config = $config;
+//                } else {
+//                    $this->config = $this->getDistributionControl();
+//                }
+//
+//                // Project Config
+//                $this->project_repo         = $this->config['project']['git_repo'];
+//                $this->project_path         = $this->config['project']['path'];
+//                $this->project_temp_path    = $this->project_path.'/_temp';
+//                $this->project_users        = $this->config['project']['users'];
+//                //$this->project_user_master  = $this->config['project']['user_master'];
+//                $this->project_cell_template= $this->project_path.'/master/cell_template';
+//                //$this->cell_general_config  = require base_path().'/config/_skelet-cli/cell.php';
 
 
 
@@ -81,7 +81,7 @@
             }
 
             // Framework Config
-            $this->skelet_framework_config  = $this->getSkeletFrameworkConfig();
+            //$this->skelet_framework_config  = $this->getSkeletFrameworkConfig();
 
         }
 
@@ -182,16 +182,17 @@
          * Obtener la configuración de distribución de los
          * fuentes del proyecto.
          *
+         * @deprecated
          * @return mixed
          */
-        public function getDistributionControl()
-        {
-            if (! $this->project_distribution_config) {
-                $this->project_distribution_config = require base_path().'/../../config/skelet/project.distributions.php';
-            }
-
-            return $this->project_distribution_config;
-        }
+//        public function getDistributionControl()
+//        {
+//            if (! $this->project_distribution_config) {
+//                $this->project_distribution_config = require base_path().'/config/_skelet-cli-server/project.distributions.php';
+//            }
+//
+//            return $this->project_distribution_config;
+//        }
 
 
         /**
@@ -200,18 +201,18 @@
          *
          * @return mixed
          */
-        public function getSkeletFrameworkConfig()
-        {
-            $file_config = base_path().'/../../config/skelet/skelet.framework.php';
-
-            if (! $this->skelet_framework_config && file_exists($file_config)) {
-                $this->skelet_framework_config = require base_path().'/../../config/skelet/skelet.framework.php';
-
-                $this->framework_repo = $this->skelet_framework_config['framework_git_repo'];
-            }
-
-            return $this->skelet_framework_config;
-        }
+//        public function getSkeletFrameworkConfig()
+//        {
+//            $file_config = base_path().'/../../config/skelet/skelet.framework.php';
+//
+//            if (! $this->skelet_framework_config && file_exists($file_config)) {
+//                $this->skelet_framework_config = require base_path().'/../../config/skelet/skelet.framework.php';
+//
+//                $this->framework_repo = $this->skelet_framework_config['framework_git_repo'];
+//            }
+//
+//            return $this->skelet_framework_config;
+//        }
 
         /**
          *
