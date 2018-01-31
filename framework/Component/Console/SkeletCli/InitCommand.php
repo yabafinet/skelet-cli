@@ -63,24 +63,45 @@
 
         private $password;
 
+        /**
+         * Agregar opciones a los comandos que se ejecutaran.
+         *
+         * @var string
+         */
+        private $add_options;
+
+        private $is_debug = false;
+
         protected function configure()
         {
             $this
                 ->setName('init')
                 ->addArgument('username', InputArgument::OPTIONAL, 'Nombre de usuario.')
-                ->addOption('--init','-i',InputOption::VALUE_OPTIONAL,'Reconstruir la celula.')
+                ->addOption('init','i',InputOption::VALUE_OPTIONAL,'Reconstruir la celula.')
+                ->addOption('debug','d',InputOption::VALUE_OPTIONAL,'Ejecutar en modo debug.',false)
+                ->addOption('simulate','s',InputOption::VALUE_OPTIONAL,'Ejecutar en modo simulacion.', false)
                 ->setDescription('Autenticación de usuarios de espacios de trabajo.')
                 ->setHelp(''."\n")
             ;
 
             $this->getConfigurationStation();
-
         }
 
         protected function execute(InputInterface $input, OutputInterface $output)
         {
             $this->input        = $input;
             $this->output       = $output;
+            $simulate           = $this->input->getOption('simulate');
+            $debug              = $this->input->getOption('debug');
+
+            if ($debug) {
+                $this->add_options .= ' --debug=true';
+                $this->is_debug     = true;
+            }
+
+            if ($simulate) {
+                $this->add_options .= ' --simulate=true';
+            }
 
             if ($this->input->getArgument('username')) {
                 $this->username = $this->input->getArgument('username');
@@ -110,6 +131,7 @@
             try {
                 $configs = Yaml::parse(file_get_contents($file));
 
+
             } catch (ParseException $e) {
                 exit('No es posible leer la configuración del workspace.');
             }
@@ -134,6 +156,8 @@
             $this->output->writeln('<fg=black;bg=magenta> '.self::$tag.' </><fg=black;bg=cyan> v1.0 by Ing. Yadel Batista.</>');
             $this->output->writeln('<fg=black;bg=magenta> '.self::$tag.' </><fg=black;bg=cyan> '.$this->username.' ==>> '.$this->config['server']['host'].' </>');
 
+            $this->debug('enabled');
+
             $io = new SymfonyStyle($this->input, $this->output);
 //            $io->newLine();
 //            $io->progressStart(100);
@@ -150,6 +174,14 @@
         static function tag()
         {
            return '<fg=black;bg=cyan> '.static::$tag.' </>';
+        }
+
+
+        public function debug($text)
+        {
+            if($this->is_debug) {
+                $this->output->writeln('<fg=red> debug: </> '.$text);
+            }
         }
 
         /**
@@ -350,11 +382,14 @@
 //                $execute_in_path = $cells_path;
 //            }
 
-            $command   = 'export CONSOLE_TYPE="remote"; php '.$exe_in_path.'/skelet-cli '.$command;
+            $command   = 'export CONSOLE_TYPE="remote"; php '.$exe_in_path.'/skelet-cli '.$command.' '.$this->add_options;
+
+            $this->debug('remote command: '.$command);
+
             $result    = $this->server->exec($command);
             $result    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $result);
 
-            d($result);
+            $this->debug('remote command (response): '.$result);
 
             Utilities::remote()->executeRemote($result,$this);
 
@@ -371,8 +406,9 @@
         {
 
             if (! $this->psStatusProcess('sync')) {
+
                 $this->process['sync'] = new Process(
-                    'php '.base_path().'/skelet-cli sync '.$this->username.'.'.$this->auth->getPassword().' > /dev/null 2>&1 &'
+                    'php '.base_path().'/skelet-cli sync '.$this->username.'.'.$this->auth->getPassword().' '.$this->add_options.' > /dev/null 2>&1 &'
                 );
                 $this->process['sync']->run();
                 $this->info('sync process started...');
