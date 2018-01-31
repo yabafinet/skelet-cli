@@ -101,6 +101,7 @@
             }
 
             $this->config   = new Configuration();
+
         }
 
         protected function configure()
@@ -139,8 +140,6 @@
             if($simulate) {
                 $this->enabledSimulation();
             }
-
-            d($download);
 
             if ($download) {
 
@@ -591,12 +590,16 @@
 
             $fs =  new \Framework\Component\Filesystem\Filesystem();
 
-            if (!$fs->exists($file_index)) {
+            if (! $fs->exists($file_index)) {
                 $fs->put($this->getFileForIndexSync(),0);
             }
 
-            if (!$fs->exists( $this->getFileForIndexLocalFiles() )) {
+            if (! $fs->exists( $this->getFileForIndexLocalFiles() )) {
                 $this->indexFiles();
+            }
+
+            if (! $fs->exists( base_path().'/storage/cache' )) {
+                $fs->makeDirectory(base_path().'/storage/cache');
             }
 
             return $fs->get( $file_index );
