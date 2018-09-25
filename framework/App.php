@@ -5,6 +5,7 @@
     use Framework\Component\Events\InternalEventsDispatcher;
     use Framework\Controller\ArgumentMetadataFactory;
     use Framework\Controller\ControllerResolver;
+    use Framework\Events\RequestResponseEvent;
     use Illuminate\Container\Container;
     use Symfony\Component\EventDispatcher\EventDispatcher;
     use Framework\Component\Http\RedirectResponse;
@@ -24,15 +25,26 @@
         public  static $instance;
         public  $request;
         public  $context;
+
+        /**
+         * @var Route
+         */
         public  $route;
+
+        /**
+         * @var View
+         */
         public  $view;
         public  $dispatcher;
         public  $controller;
         public  $db;
-        private $app_config         =[];
-        private $configurations     =[];
+        private $app_config         = [];
+        private $configurations     = [];
         public  $config;
         public  $isAbort            = false;
+        /**
+         * @var Response
+         */
         public  $response;
         public  $debugMode          = false;
         public  $bootComponents;
@@ -44,11 +56,10 @@
         /**
          * App constructor.
          */
-        function __construct()
+        public function __construct()
         {
 
-            if($this->debugMode == true)
-            {
+            if($this->debugMode == true) {
                 $whoops = new Whoops_Run;
                 $whoops->pushHandler(new Whoops_PrettyPageHandler);
                 //$whoops->allowQuit(false);
@@ -57,17 +68,15 @@
 
             $this->setConfig();
 
-            $this->container        = new Container();
-            //$this->request          = Request::singleton();
-            //$this->route            = Route::getInstance();
-            //$this->dispatcher       = new EventDispatcher();
-            //$this->view             = View::getInstance($this->container); // <-- Singleton
-            //$this->controller       = new Controller();
-            //$this->response         = new Response();
+            $this->container  = new Container();
 
             if ($this->application_type =='web') {
 
                 $this->prepareFromWebApplication();
+
+            } elseif ($this->application_type == 'api') {
+
+                $this->prepareFromApiApplication();
 
             } elseif ($this->application_type == 'console') {
 
@@ -83,24 +92,29 @@
 
         }
 
-        function prepareFromWebApplication()
+        public function prepareFromWebApplication()
         {
             $this->request          = Request::singleton();
             $this->route            = Route::getInstance();
             $this->dispatcher       = new EventDispatcher();
-            $this->view             = View::getInstance($this->container); // <-- Singleton
+            $this->view             = View::getInstance($this->container);
             $this->controller       = new Controller();
             $this->response         = new Response();
         }
 
-        function prepareFromConsoleApplication()
+        public function prepareFromApiApplication()
         {
-            //$this->request          = Request::singleton();
-            //$this->route            = Route::getInstance();
+            $this->request          = Request::singleton();
+            $this->route            = Route::getInstance();
             $this->dispatcher       = new EventDispatcher();
-            //$this->view             = View::getInstance($this->container); // <-- Singleton
-            //$this->controller       = new Controller();
-            //$this->response         = new Response();
+            $this->view             = View::getInstance($this->container);
+            $this->controller       = new Controller();
+            $this->response         = new Response();
+        }
+
+        public function prepareFromConsoleApplication()
+        {
+            $this->dispatcher       = new EventDispatcher();
         }
 
 
@@ -112,8 +126,7 @@
         {
             $this->prepareFromWebApplication();
 
-            try
-            {
+            try {
                 // Components (Service Provider Register Method)
                 $this->bootComponents->loadComponents('register');
 
@@ -121,7 +134,7 @@
                 $this->route->build($this->request);
 
                 // Internals Events
-                $this->internalEventsDispatcher->dispatch(); // <-- Disparando eventos del framework.
+                $this->internalEventsDispatcher->dispatch(); //<-- Eventos del framework.
 
                 list($controller, $arguments) = $this->resolverController();
 
@@ -129,49 +142,40 @@
                 $this->bootComponents->loadComponents('boot');
 
 
-                if($this->isAbort ==false)
-                {
-                    if(!method_exists($controller[0],$controller[1]))
-                    {
-                        $this->abort('Not Found Action:'.$controller[0]."::".$controller[1], 404);
+                if($this->isAbort ==false) {
+                    if(!method_exists($controller[0],$controller[1])) {
+                        $this->abort(
+                            'Not Found Action:'.$controller[0]
+                                    ."::" .$controller[1],
+                            404
+                        );
 
-                    }else{
+                    } else {
 
                         $response = call_user_func_array($controller, $arguments);
 
                         if($this->isAbort ==false)
                             $this->response( $response );
                     }
-
-                } else {
-
                 }
 
 
+            } catch (SecurityCoreException $e) {
+                $this->response(
+                    'Security Exception: ' .$e->getCode(),
+                    Response::HTTP_UNAUTHORIZED
+                );
 
-            } catch (SecurityCoreException $e)
-            {
-                $this->response('Security Exception: '.$e->getCode(), Response::HTTP_UNAUTHORIZED);
-
-            } catch (Routing\Exception\ResourceNotFoundException $e)
-            {
-                $this->response('Not Found!', Response::HTTP_NOT_FOUND);
-
+            } catch (Routing\Exception\ResourceNotFoundException $e) {
+                $this->response('', Response::HTTP_NOT_FOUND);
             }
-            catch (Exception $exception)
-            {
-                //echo $exception->getMessage();
-                InternalDebug::log("RunTimeException",$exception->getTrace());
-            }
+
 
             // dispatch a on.response.send event
             $this->internalEventsDispatcher->onResponseSend();
             $this->response->send();
 
-            if(!$this->isAbort)
-                Component\Debug\Debug::showDebugInformation();
-
-            //echo "Container Debug:";
+            //d(Component\Debug\Debug::showDebugInformation());
             //d($this->container);
 
         }
@@ -179,7 +183,6 @@
 
         /**
          * Punto iniciar del Framework.
-         *
          */
         public function buildFromConsoleApplication()
         {
@@ -187,13 +190,8 @@
             // Components (Service Provider Register Method)
             $this->bootComponents->loadComponents('register');
 
-            // Route Collection:
-            //$this->route->build($this->request);
-
             // Internals Events
-            $this->internalEventsDispatcher->dispatch(); // <-- Disparando eventos del framework.
-
-            //list($controller, $arguments) = $this->resolverController();
+            $this->internalEventsDispatcher->dispatch(); // <-- Eventos del framework.
 
             // Components (Service Provider Boot Method)
             $this->bootComponents->loadComponents('boot');
@@ -209,12 +207,14 @@
         }
 
         /**
+         * @param string $eventName
          * @return EventDispatcher
          */
         public function event($eventName ='')
         {
             return $this->dispatcher;
         }
+
         /**
          * @return Request
          */
@@ -237,31 +237,40 @@
         }
 
 
-
         /**
          * @param string $content
-         * @param int    $status
+         * @param int $status
+         * @return Response
          */
-        function response($content ='', $status = Response::HTTP_OK)
+        public function response($content ='', $status = Response::HTTP_OK)
         {
-            $this->response->setContent($content);
-            $this->response->setStatusCode($status);
-            //$this->event()->dispatch('on.request.response', new RequestResponseEvent($this->response, $this->request));
+            if($content) {
+                $this->response->setContent($content);
+                $this->response->setStatusCode($status);
+            }
+
+            // Disparando Eventos de Respuesta al Cliente:
+            $this->event()->dispatch(
+                'on.request.response',
+                new RequestResponseEvent($this->response, $this->request)
+            );
+
+            return $this->response;
         }
 
         /**
          *
          * @param array $data
-         * @param bool $abort
+         * @param bool  $abort
+         * @param int   $status
          */
-        function responseJson(array $data, $abort = false)
+        public function responseJson(array $data, $abort = false, $status = 200)
         {
-            $this->response = new JsonResponse($data);
+            $this->response = new JsonResponse($data, $status);
             $this->response->send();
 
             if ($abort ==true)
                 exit;
-
         }
 
         /**
@@ -269,7 +278,7 @@
          * @param $key
          * @param null $default
          */
-        function input($key, $default = null)
+        public function input($key, $default = null)
         {
             $this->request()->get($key, $default);
         }
@@ -279,7 +288,7 @@
          * @param string $content
          * @param int    $status
          */
-        function abort($content ='', $status = Response::HTTP_BAD_REQUEST)
+        public function abort($content ='', $status = Response::HTTP_BAD_REQUEST)
         {
             $this->isAbort  = true;
             $this->response($content, $status);
@@ -293,7 +302,7 @@
          * @param array $with
          * @internal param int $status
          */
-        function redirect($url, array $with = null)
+        public function redirect($url, array $with = null)
         {
             $this->isAbort  = true;
             $this->response = new RedirectResponse(env("app.base_path").$url);
@@ -321,7 +330,7 @@
             return self::$instance;
         }
 
-        function setSingleton()
+        public function setSingleton()
         {
             self::singleton();
         }
@@ -332,27 +341,33 @@
          */
         public function resolverController()
         {
-            $controllerResolver     = new ControllerResolver(null, $this->container);
+            $controllerResolver     = new ControllerResolver(
+                null, $this->container
+            );
             $controller             = $controllerResolver->getController($this->request);
             $arguments              = $controllerResolver->getArguments($this->request, $controller);
-            $this->controller       = $controller[0];
+
+            $this->controller       = is_array($controller)
+                    ? $controller[0]
+                    : $controller;
+
             $result                 = array($controller, $arguments);
 
             return $result;
         }
 
         /**
-         * Obtener el tipo de aplicacion que
+         * Obtener el tipo de aplicación que
          * se esta ejecutando.
          *
          * @return string
          */
-        static function type()
+        public static function type()
         {
             return self::singleton()->application_type;
         }
 
-        function setTypeApplication($type)
+        public function setTypeApplication($type)
         {
             $this->application_type = $type;
         }

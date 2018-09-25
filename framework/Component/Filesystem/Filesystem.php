@@ -86,13 +86,11 @@
         public function copyTheseFiles(array $files,$origin,$destination, $options = null)
         {
 
-            foreach ($files as $file)
-            {
+            foreach ($files as $file) {
                 $file_origin        = $origin.'/'.$file;
                 $file_destination   = $destination.'/'.$file;
 
-                if(is_dir($file_origin))
-                {
+                if(is_dir($file_origin)) {
                     $this->copyDirectory($file_origin,$file_destination, $options);
                 }else
                     $this->copy($file_origin, $file_destination);

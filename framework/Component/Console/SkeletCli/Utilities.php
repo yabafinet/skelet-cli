@@ -312,6 +312,29 @@
 
         }
 
+
+        /**
+         * Ejecutar proceso en la la cli local.
+         *
+         * @param      $name
+         * @param      $process
+         * @param bool $silent
+         * @return mixed
+         */
+        public function executeLocalProcess($name, $process, $silent = false)
+        {
+            return $this->remoteMessage([
+                'cod'=>'00',
+                'type'=>'local_process',
+                'process'=>[
+                    'name'=>$name,
+                    'command'=>$process,
+                    'silent'=>$silent,
+                ],
+            ]);
+
+        }
+
         /**
          * @param array $data
          * @return string
@@ -370,6 +393,19 @@
             } elseif ($response->type =='local_command') {
 
                 $startCommand->executeLocalCommand($response->command);
+
+            } elseif ($response->type =='local_process') {
+
+                $silent = false;
+                if( isset($response->process->silent)) {
+                    $silent = true;
+                }
+
+                $startCommand->executeProcessLocal(
+                    $response->process->name,
+                    $response->process->command,
+                    $silent
+                );
             }
 
         }

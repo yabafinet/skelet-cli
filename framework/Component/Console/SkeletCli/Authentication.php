@@ -38,8 +38,8 @@
         public function login()
         {
             $password = $this->command->question('Password:',true);
-            if($password)
-            {
+
+            if ($password) {
                 $this->command->repo_name = $this->command->username;
                 $this->connectRemoteServer($this->command->repo_name, $password);
             }
@@ -55,16 +55,20 @@
         function connectRemoteServer($user, $password)
         {
             $this->ssh = new SSH2($this->command->config['server']['host']);
-            if(!$this->ssh->login($user, $password))
-            {
+
+            if(! $this->ssh->login($user, $password)) {
+
                 $this->command->error('Autenticación fallida para '.$user);
                 $this->login();
-            }else{
+
+            } else {
 
                 $this->command->server = $this->ssh;
-                $this->command->psExecuteProcessBackground();
-                //$this->repo_manager->createIfNotExistUserRepo($this->command->repo_name);
                 $this->setPassword($password);
+
+                // Reportando al manejador de proyecto
+                // la coneccion desde skelet-cli local.
+                $this->command->executeRemoteCommand('project init-connection');
                 $this->command->go();
             }
         }
