@@ -3,6 +3,9 @@
     use Framework\Component\Security\Authentication\SessionManager;
     use Framework\Component\Security\Encrypt\EncryptCore;
     use Framework\Component\Translation\Translator;
+    use Framework\Component\UserInterface\HtmlAssistant\HtmlBuild;
+    use Framework\Component\UserInterface\JavaScriptAssistant\JavaScript;
+    use Framework\Component\UserInterface\MenuCreator;
     use Framework\Configurations;
     use Framework\Component\VarDumper\Dumper;
     use Illuminate\Container\Container;
@@ -36,7 +39,7 @@
     }
 
     /**
-     * Obtener configuraciones de la logica de negocio.
+     * Obtener configuraciones de la lógica de negocio.
      *
      * @param           $key
      * @param   string  $default_value
@@ -159,9 +162,12 @@
 
     function auth()
     {
-        return \Framework\Component\Security\Authentication\Auth::singleton();
+        return \Framework\Component\Security\Authentication\AuthController::singleton();
     }
 
+    /**
+     * @return \App\Models\Users|\Framework\Model\Model
+     */
     function user()
     {
         return auth()->user();
@@ -183,6 +189,14 @@
         $encryptCore   = app()->container->make(EncryptCore::class);
         $value         = $encryptCore->encrypt($value);
         return $value;
+    }
+
+    /**
+     * @return \Framework\Component\Http\Request
+     */
+    function request()
+    {
+        return app()->request();
     }
 
     /**
@@ -240,4 +254,30 @@
     function base_path()
     {
         return str_replace('/..','',dirname(__DIR__));
+    }
+
+    /**
+     *
+     * @return JavaScript
+     */
+    function js()
+    {
+        return new JavaScript();
+    }
+
+    /**
+     *
+     * @return HtmlBuild
+     */
+    function html()
+    {
+        return new HtmlBuild();
+    }
+
+    /**
+     * @return MenuCreator
+     */
+    function ui_menu()
+    {
+        return app()->container->make(MenuCreator::class);
     }

@@ -197,12 +197,13 @@
          */
         private function parseKey2($config,$key)
         {
-            foreach ($key as $k1)
-            {
+            foreach ($key as $k1) {
+
                 if(isset($config[$k1])){
+
                     $config = $config[$k1];
-                }else{
-                }
+
+                } else {}
 
             }
             return $config;

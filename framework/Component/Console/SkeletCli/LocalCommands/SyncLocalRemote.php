@@ -17,6 +17,8 @@
     use Symfony\Component\Console\Command\LockableTrait;
     use Framework\Component\Console\SkeletCli\InitCommand;
     use Symfony\Component\Console\Output\OutputInterface;
+    use Symfony\Component\Process\Exception\ProcessFailedException;
+    use Symfony\Component\Process\Process;
 
 
     class SyncLocalRemote extends Command
@@ -112,6 +114,7 @@
                 ->addOption('config','c',InputOption::VALUE_OPTIONAL,'Especifica si se quiere reconfigurar.')
                 ->addOption('download','d',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Especificar los archivos a descargar desde el remoto.')
                 ->addOption('exclude','e',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Archivos que se excluyen de la sincronización.')
+                ->addOption('upload','u',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Directorios que se observaran para sincronizar.')
                 ->addOption('simulate','s',InputOption::VALUE_IS_ARRAY | InputOption::VALUE_OPTIONAL,'Simular la sincronización del proyecto.')
                 ->setDescription('Sincronización de una celula con remoto.')
                 ->setHelp(''."\n")
@@ -135,21 +138,27 @@
             $download      = $input->getOption('download');
             $exclude       = $input->getOption('exclude');
 
+            $this->dirs_for_sync = $input->getOption('upload');
+
             $simulate      = $input->getOption('simulate');
 
-            if($simulate) {
+            if ($simulate) {
                 $this->enabledSimulation();
             }
 
             if ($download) {
-
                 $this->downloadFiles($user,$download, $exclude);
+            }
+//            elseif ($this->startSyncProject($user)) {
+//
+//                $this->utils->error('Autenticación fallida para '.$user);
+//
+//            }
+            elseif ($this->dirs_for_sync) {
 
-            } elseif ($this->startSyncProject($user)) {
+                $this->rSync($user);
 
-                $this->utils->error('Autenticación fallida para '.$user);
-
-            }else{
+            } else {
                 //Utilities::local($input,$output)->info('Conectado! ');
             }
         }
@@ -163,12 +172,18 @@
          */
         public function getDirectoriesForSync()
         {
-            $this->dirs_for_sync = [
-              base_path().'/app',
-              //base_path().'/public/assets',
-            ];
+            $dirs = [];
 
-            return $this->dirs_for_sync;
+            foreach ($this->dirs_for_sync as $file) {
+
+                $file_path = base_path().'/' . $file;
+
+                if(file_exists($file_path)) {
+                    $dirs[] = $file_path;
+                }
+            }
+
+            return $dirs;
         }
 
 
@@ -180,7 +195,6 @@
          */
         function startSyncProject($user)
         {
-
             try {
                 if ($this->syncSftp($user, $this->config->getUserRepositoryPath())) {
                     sleep(10);
@@ -264,7 +278,7 @@
             }
 
             $this->output->writeln('- - - - - - - - - - - - - - - - - - - - - - ');
-            $this->output->writeln($index_modified.' / last synchronisation. ');
+            $this->output->writeln($index_modified.' / last synchronisation [<fg=red>'.date("H:i:s").'</>]. ');
 
             if (! $modified_files) {
                 $this->output->writeln('<comment>There are no files to modify.</comment>');
@@ -334,6 +348,69 @@
 
 
         /**
+         * Sincronizar cambios de aplicación local con
+         * aplicación remota.
+         *
+         * @param $user
+         * @return bool
+         */
+        function rSync($user)
+        {
+            $include_options    = $this->prepareIncludeFiles();
+            $destination        = $this->config->getUserRepositoryPath();
+
+            $host   = $this->config->getProjectServerHost();
+            $pass   = '';
+
+            // Dividir user/pass
+            if (strstr($user,'.')) {
+                $access = explode('.',$user);
+                $user   =  $access[0];
+                $pass   =  $access[1];
+            }
+
+            foreach ($this->dirs_for_sync as $file) {
+
+                $local_file     = base_path().'/' .$file;
+                $remote_file    = $destination.'/'.$file;
+
+                if(file_exists($local_file)) {
+
+//                    if () {
+//
+//                    }
+
+                    $cmd     = 'rsync -uavP '.$local_file.' '.$user.'@'.$host.':'.$remote_file;
+                    //$process = new Process($cmd);
+                    //->run();
+
+                    //echo $process->getOutput();
+
+                    echo
+                        "\n - - - rsync - - -\n"
+                        . $cmd
+                        ."\n"
+                    ;
+                }
+            }
+
+
+
+            return true;
+        }
+
+        private function prepareIncludeFiles()
+        {
+            $dirs_for_sync =  $this->getDirectoriesForSync();
+            $options = '';
+            foreach ($dirs_for_sync as $dir) {
+                $options .='--include="'.$dir.'" ';
+            }
+
+            return $options;
+        }
+
+        /**
          * Obtener los ultimos archivos modificados.
          *
          * @param array $in_directories
@@ -341,6 +418,7 @@
          */
         public function getTheLatestModifiedFiles(array $in_directories)
         {
+
             if (count($in_directories) <1) {
                 return false;
             }
@@ -364,32 +442,55 @@
          */
         public function getTheLatestModifiedDirectories($index_modified)
         {
+            $dirs_for_sync = $this->getDirectoriesForSync();
             $finder = new Finder();
             $finder
-                ->directories()
                 ->exclude([base_path().'/vendor',base_path().'/store'])
                 ->in(
-                    $this->getDirectoriesForSync()
+                    $dirs_for_sync
                 )
                 ->date('since 48 hour ago')
                 ->sortByModifiedTime();
 
             $directories_for_sync   = array();
+            //$directories_for_sync   = array_merge($directories_for_sync, $dirs_for_sync);
             $last_m_directory       = null;
 
-            foreach ($finder as $file) {
+            //echo "Directorio a sincronizar: \n";
+            //d($finder);
 
+            foreach ($finder as $file) {
+                //$last_m_directory       = null;
                 $date_modified = $file->getMTime();
 
+                $this->output->writeln(' * search in dir['.$date_modified.']: <comment>'.$file->getPathname().'</comment>');
+
                 if ($date_modified > $index_modified ) {
-                    $directories_for_sync[] = $file->getPathname();
-                    $last_m_directory   = $date_modified;
+
+                    $this->output->writeln(' -- path: <comment>'.$file->getPath().'</comment>');
+                    $this->output->writeln(' -- time modified: <comment>'.$date_modified.'</comment>');
+                    $this->output->writeln('');
+
+                    if ($file->isDir()) {
+
+                        $directories_for_sync[] = $file->getPathname();
+                        $last_m_directory       = $date_modified;
+
+                    } else {
+                        $directories_for_sync[] = $file->getPath();
+                        $last_m_directory       = $date_modified;
+                    }
                 }
             }
 
             if(! is_null($last_m_directory) && $index_modified !== $last_m_directory) {
                 $this->updateIndexSynchronization($last_m_directory);
+            } else {
+                $directories_for_sync = array();
             }
+
+            echo "Directorio a sincronizar: \n";
+            d($directories_for_sync);
 
             return $directories_for_sync;
         }
@@ -405,6 +506,9 @@
             if (! $directories) {
                 $directories = $this->getDirectoriesForSync();
             }
+
+            d($directories);
+
             $finder = new Finder();
             $finder
                 ->files()
@@ -498,8 +602,9 @@
             $finder = new Finder();
             $finder
                 ->files()
-                ->in( $this->getDirectoriesForSync() )
-                ->sortByModifiedTime();
+                ->in(
+                    $this->getDirectoriesForSync()
+                )->sortByModifiedTime();
 
             $files_in_dirs   = array();
 

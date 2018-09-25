@@ -10,6 +10,8 @@
         "symfony/yaml": "^3.3",
         "symfony/debug": "^3.3",
         "symfony/var-dumper": "^3.3",
+        "symfony/dom-crawler": "*",
+        "symfony/css-selector": "*",
         "filp/whoops": "^2.1",
         "sobstel/sesshin": "^1.0",
         "maximebf/debugbar": "^1.14",
@@ -23,7 +25,8 @@
         "monolog/monolog": "^1.23",
         "symfony/console": "^3.4",
         "symfony/filesystem": "^3.4",
-        "symfony/process": "^3.4"
+        "symfony/process": "^3.4",
+        "picqer/php-barcode-generator": "^0.2.2"
     },
     "require-dev": {
         "league/flysystem-sftp" :"*",

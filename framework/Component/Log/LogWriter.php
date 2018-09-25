@@ -166,8 +166,7 @@
 
             foreach ($listeners_log as $listener_class=>$config)
             {
-                if(is_array($listener_class))
-                {
+                if(is_array($listener_class)) {
                     $this->listen(new $listener_class, $config);
                 }
 

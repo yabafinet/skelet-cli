@@ -129,10 +129,11 @@
             }
 
             try {
+
                 $configs = Yaml::parse(file_get_contents($file));
 
-
             } catch (ParseException $e) {
+
                 exit('No es posible leer la configuración del workspace.');
             }
 
@@ -154,7 +155,7 @@
         function welcome()
         {
             $this->output->writeln('<fg=black;bg=magenta> '.self::$tag.' </><fg=black;bg=cyan> v1.0 by Ing. Yadel Batista.</>');
-            $this->output->writeln('<fg=black;bg=magenta> '.self::$tag.' </><fg=black;bg=cyan> '.$this->username.' ==>> '.$this->config['server']['host'].' </>');
+            $this->output->writeln('<fg=black;bg=magenta> '.self::$tag.' </><fg=black;bg=cyan> '.$this->username.' ==> '.$this->config['server']['host'].' </>');
 
             $this->debug('enabled');
 
@@ -373,21 +374,12 @@
 
             $this->last_remote_command  = $command;
 
-            //$cells_path   = Utilities::local()->getUserPath( $this->username );
-
-//            if ($exe_in_path) {
-//                $execute_in_path = $exe_in_path;
-//
-//            } else {
-//                $execute_in_path = $cells_path;
-//            }
-
             $command   = 'export CONSOLE_TYPE="remote"; php '.$exe_in_path.'/skelet-cli '.$command.' '.$this->add_options;
 
             $this->debug('remote command: '.$command);
 
             $result    = $this->server->exec($command);
-            $result    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $result);
+            $result    = $this->prepareForExecutedLocal($result);
 
             $this->debug('remote command (response): '.$result);
 
@@ -397,9 +389,17 @@
         }
 
 
+        public function prepareForExecutedLocal($text)
+        {
+            $text    =  str_replace(['{auth.user}','{auth.password}'],[$this->username,$this->auth->getPassword()], $text);
+            return $text;
+        }
+
+
         /**
          * Ejecutar procesos en background.
          *
+         * @deprecated
          * @return bool
          */
         function psExecuteProcessBackground()
@@ -415,6 +415,32 @@
             }
 
             return true;
+        }
+
+
+        /**
+         * Ejecutar procesos en el local.
+         * Normalmente enviados desde el remoto
+         * para ser ejecutados en el local.
+         *
+         * @param      $name
+         * @param      $process
+         * @param bool $in_background
+         */
+        public function executeProcessLocal($name,$process, $in_background = false)
+        {
+
+            if($in_background) {
+                $process .= ' > /dev/null 2>&1 &';
+            }
+
+            $process = $this->prepareForExecutedLocal($process);
+
+            $this->process[$name] = new Process(
+                'php '.base_path().'/skelet-cli '.$process
+            );
+            $this->process[$name]->run();
+            $this->debug('execProcessLocal('.$name.'): '.$process);
         }
 
 
