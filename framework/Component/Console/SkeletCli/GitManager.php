@@ -90,7 +90,7 @@
 
         /**
          * Sincronizar dos directorios tomando en cuenta
-         * los archivos pasados en $files_structure
+         *  los archivos pasados en $files_structure
          *
          * @param array $files_structure
          * @param       $origin
@@ -141,13 +141,17 @@
                     }
                 }
 
-                $rsync_command = "rsync -uavP $exclude_option --size-only --delete --progress ".$file_origin.' '.$destination;
+                $rsync_command = "rsync -avz $exclude_option --size-only --delete --progress ".$file_origin.' '.$destination;
+
+                echo $rsync_command."\n";
+
                 $repo = new Process($rsync_command);
 
+
                 if ($repo->run() ==1) {
-
+                    echo $repo->getOutput();
                 } else {
-
+                    //echo "\n error sync".$repo->getOutput();
                 }
 
                 //Utilities::local($this->input, $this->output)->message("rsync: \n".$repo->getOutput());
