@@ -9,6 +9,6 @@
     interface Application
     {
 
-        function run();
-        function add(Command $command);
+        public function run();
+        public function add(Command $command);
     }

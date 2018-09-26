@@ -167,7 +167,9 @@
                 );
 
             } catch (Routing\Exception\ResourceNotFoundException $e) {
+
                 $this->response('', Response::HTTP_NOT_FOUND);
+
             }
 
 
@@ -251,8 +253,7 @@
 
             // Disparando Eventos de Respuesta al Cliente:
             $this->event()->dispatch(
-                'on.request.response',
-                new RequestResponseEvent($this->response, $this->request)
+                'on.request.response', new RequestResponseEvent($this->response, $this->request)
             );
 
             return $this->response;
