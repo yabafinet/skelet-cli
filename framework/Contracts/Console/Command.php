@@ -10,8 +10,8 @@
     interface Command
     {
 
-        function configure();
+        public function configure();
 
-        function execute(InputInterface $input, OutputInterface $output);
+        public function execute(InputInterface $input, OutputInterface $output);
 
     }

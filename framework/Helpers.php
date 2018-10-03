@@ -60,8 +60,11 @@
     if (! function_exists('env')) {
         function env($key, $default_value = '')
         {
+
             return Configurations::env($key, $default_value);
         }
+    } else {
+        //d('Not Load Helper function_exists --> env() ...');
     }
 
 

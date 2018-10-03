@@ -21,7 +21,7 @@
          *
          * @param array $app_config
          */
-        function __construct(array $app_config =[])
+        public function __construct(array $app_config =[])
         {
             $this->loadEnvironment();
             $this->loadFrameworkConfigurations();
@@ -34,6 +34,7 @@
          */
         public function loadEnvironment()
         {
+
             $configs = [];
 
             try {
@@ -42,6 +43,8 @@
             } catch (ParseException $e) {
                 //printf("Unable to parse the YAML string: %s", $e->getMessage());
             }
+
+            //d($configs);
 
             $this->config = $configs;
         }
@@ -77,10 +80,11 @@
 
         public static function getInstance()
         {
-            if (self::$instance == null) {
-                self::$instance = new Configurations();
+            $instance  = self::$instance;
+            if (is_null($instance)) {
+                $instance = new Configurations();
             }
-            return self::$instance;
+            return $instance;
         }
 
         /**

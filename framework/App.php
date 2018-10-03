@@ -52,11 +52,14 @@
         public  $container;
         public  $application_type   = 'web'; // web, api, unitTest y console.
 
-
         /**
          * App constructor.
+         *
+         * @param Request        $request
+         * @param Container|null $container
+         * @param bool           $autoPrepare
          */
-        public function __construct()
+        public function __construct(Request $request = null, Container $container = null, $autoPrepare = true)
         {
 
             if($this->debugMode == true) {
@@ -68,33 +71,49 @@
 
             $this->setConfig();
 
-            $this->container  = new Container();
+            $this->container        = $container ? $container : new Container();
+            $this->request          = $request ? $request : Request::singleton();
+            $this->configurations   = Configurations::getInstance();
 
-            if ($this->application_type =='web') {
+            if($autoPrepare) {
 
-                $this->prepareFromWebApplication();
+                // Prepare Instances for Framework Run.
 
-            } elseif ($this->application_type == 'api') {
+                if ($this->application_type =='web') {
 
-                $this->prepareFromApiApplication();
+                    $this->prepareFromWebApplication();
 
-            } elseif ($this->application_type == 'console') {
+                } elseif ($this->application_type == 'api') {
 
-                $this->prepareFromConsoleApplication();
+                    $this->prepareFromApiApplication();
+
+                } elseif ($this->application_type == 'console') {
+
+                    $this->prepareFromConsoleApplication();
+                }
             }
 
-
-            $this->bootComponents   = new Component\BootComponents($this);
-
+            $this->bootComponents             = new Component\BootComponents($this);
             $this->internalEventsDispatcher   = new InternalEventsDispatcher(
                 $this->dispatcher, $this->request
             );
 
         }
 
+
+        /**
+         * Agregar un componente a la aplicación.
+         *
+         * @param      $component
+         * @param null $config
+         */
+        public function addComponent($component, $config = null)
+        {
+            $this->bootComponents->addComponent($component, $config);
+        }
+
         public function prepareFromWebApplication()
         {
-            $this->request          = Request::singleton();
             $this->route            = Route::getInstance();
             $this->dispatcher       = new EventDispatcher();
             $this->view             = View::getInstance($this->container);
@@ -104,7 +123,6 @@
 
         public function prepareFromApiApplication()
         {
-            $this->request          = Request::singleton();
             $this->route            = Route::getInstance();
             $this->dispatcher       = new EventDispatcher();
             $this->view             = View::getInstance($this->container);
@@ -117,10 +135,8 @@
             $this->dispatcher       = new EventDispatcher();
         }
 
-
         /**
-         * Punto iniciar del Framework.
-         *
+         * Construyendo el framework para una aplicación tipo Web.
          */
         public function buildFromWebApplication()
         {
@@ -184,7 +200,7 @@
 
 
         /**
-         * Punto iniciar del Framework.
+         * Construyendo el framework para una aplicación tipo Console.
          */
         public function buildFromConsoleApplication()
         {
@@ -220,17 +236,44 @@
         /**
          * @return Request
          */
-        function request()
+        public function request()
         {
-            return Request::singleton();
+            return $this->request;
         }
 
 
         private function setConfig()
         {
             date_default_timezone_set("America/Santo_Domingo");
-            $this->config = require_once __DIR__.'/../config/app.php';
+
+            $this->config =
+                is_array($this->config)
+                    ? $this->config
+                    : require __DIR__.'/../config/app.php';
+
+
+            //d([$this->get_calling_class(), $this->config]);
             return $this->app_config;
+        }
+
+
+
+        public function get_calling_class() {
+
+            //get the trace
+            $trace = debug_backtrace();
+
+            // Get the class that is asking for who awoke it
+            $class = $trace[1]['class'];
+
+            // +1 to i cos we have to account for calling this function
+            for ( $i=1; $i<count( $trace ); $i++ ) {
+                if ( isset( $trace[$i] ) ) // is it set?
+                    if ( $class != $trace[$i]['class'] ) // is it a different class
+                        return $trace[$i]['class'];
+            }
+
+            return false;
         }
 
         public function getConfig($tag_name)
@@ -338,14 +381,15 @@
 
         /**
          *
+         * @param null $controller
          * @return array
          */
-        public function resolverController()
+        public function resolverController($controller = null)
         {
             $controllerResolver     = new ControllerResolver(
                 null, $this->container
             );
-            $controller             = $controllerResolver->getController($this->request);
+            $controller             = $controller ? $controller : $controllerResolver->getController($this->request);
             $arguments              = $controllerResolver->getArguments($this->request, $controller);
 
             $this->controller       = is_array($controller)
