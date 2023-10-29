@@ -11,6 +11,9 @@
             ],
             Framework\Component\Console\SkeletCli\LocalCommands\SyncLocalRemote::class =>[
                 'workspace'=>['dev']
+            ],
+            \App\Console\Commands\LoadStructureFileAdessCommand::class =>[
+                'workspace'=>['dev']
             ]
         ]
     ];

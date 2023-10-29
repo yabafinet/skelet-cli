@@ -254,9 +254,11 @@
     }
 
 
-    function base_path()
+    function base_path($type = null)
     {
-        return str_replace('/..','',dirname(__DIR__));
+        $base_path = str_replace('/..','',dirname(__DIR__));
+
+        return $type ? $base_path.'/'.$type : $base_path;
     }
 
     /**
